@@ -22,6 +22,9 @@
         margin: 0;
         background: #fafafa;
       }
+      .response-col_links {
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -37,6 +40,7 @@
           presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
           layout: "StandaloneLayout",
           deepLinking: true,
+          persistAuthorization: true,
         });
       };
     </script>
