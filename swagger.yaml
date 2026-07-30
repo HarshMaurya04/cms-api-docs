@@ -1,0 +1,107 @@
+openapi: 3.0.1
+
+info:
+  title: Story Creation Service
+  description: This is the Story Creation API for submitting stories and initiating asynchronous PED processing.
+  contact:
+    email: nageshnayak@iitb.ac.in
+  version: 1.0.0
+
+servers:
+  - url: https://g8runbu52d.execute-api.ap-south-1.amazonaws.com/prod
+
+paths:
+  /story:
+    post:
+      summary: Submit a story for processing
+      operationId: CreateStory
+      requestBody:
+        description: Story creation request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoryReq"
+
+      responses:
+        "200":
+          description: Story accepted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoryRes"
+
+        "400":
+          description: Validation failed
+
+        "403":
+          description: Invalid API key
+
+        "500":
+          description: Internal server error
+
+      security:
+        - ApiKeyAuth: []
+
+      x-codegen-request-body-name: body
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+
+  schemas:
+    StoryReq:
+      type: object
+      required:
+        - storyTitle
+        - storyContent
+        - language
+        - uuid
+        - age
+
+      properties:
+        storyTitle:
+          type: string
+          description: Title of the story. Maximum 64 characters (including spaces).
+
+        storyContent:
+          type: string
+          description: Story text. Minimum 10 characters (including spaces). Maximum 120 words.
+
+        language:
+          type: string
+          description: 2-character ISO language code. Supported values are EN, HI, MR, TA, OR, KN, TE, BN, GU, AS, PA, ML and UR.
+
+        uuid:
+          type: string
+          description: Client-generated UUID7 (36 characters including hyphens).
+
+        age:
+          type: integer
+          minimum: 6
+          maximum: 13
+          description: Target age for which the story is intended.
+
+    StoryRes:
+      type: object
+
+      properties:
+        status:
+          type: string
+          description: Status of the request.
+          example: success
+
+        uuid:
+          type: string
+          description: Client-generated UUID echoed back in the response.
+
+        storyId:
+          type: string
+          description: Server-generated Story UUID7 (36 characters including hyphens).
+
+        message:
+          type: string
+          description: Response message indicating the request result.
