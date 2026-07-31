@@ -8,10 +8,10 @@ info:
   version: 1.0.0
 
 servers:
-  - url: https://g8runbu52d.execute-api.ap-south-1.amazonaws.com/prod
+  - url: https://505a4vjhyk.execute-api.ap-south-1.amazonaws.com/prod
 
 paths:
-  /story:
+  /scoring:
     post:
       summary: Submit a story for processing
       operationId: CreateStory
