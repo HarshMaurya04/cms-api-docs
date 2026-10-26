@@ -1,3 +1,4 @@
+
 openapi: 3.0.1
 
 info:
@@ -16,7 +17,7 @@ paths:
       summary: Submit a test or practice story for processing
       operationId: CreateStory
       description: |
-        Submit the request using multipart/form-data for both test and practice stories.
+        Submit the request using multipart/form-data.
 
         For a test story:
         - Set contentType to test.
@@ -24,16 +25,18 @@ paths:
 
         For a practice story:
         - Set contentType to practice.
-        - Provide practiceContent as a JSON file.
+        - Upload practiceContent as a JSON file.
         - Upload the practice audio as an MP3 file using audioFile.
 
         For a combined test and practice story:
         - Set contentType to both.
         - Provide storyContent as a single paragraph containing a maximum of 120 words.
-        - Provide practiceContent as a JSON file.
+        - Upload practiceContent as a JSON file.
         - Upload the practice audio as an MP3 file using audioFile.
 
         The thumbnail field is optional for all request types.
+        The thumbnail must be a JPG/JPEG image with dimensions of exactly
+        630 x 360 pixels and a maximum size of 150 KiB.
 
         For contentType both, test and practice processing are initiated separately,
         one after the other, using the same storyId. The asynchronous responses
@@ -45,10 +48,75 @@ paths:
         content:
           multipart/form-data:
             schema:
-              oneOf:
-                - $ref: '#/components/schemas/TestStoryReq'
-                - $ref: '#/components/schemas/PracticeStoryReq'
-                - $ref: '#/components/schemas/BothStoryReq'
+              type: object
+              required:
+                - contentType
+                - storyTitle
+                - language
+                - uuid
+                - grade
+              properties:
+                contentType:
+                  type: string
+                  enum:
+                    - test
+                    - practice
+                    - both
+                  description: |
+                    Select test, practice, or both.
+                    Required fields depend on the selected contentType.
+
+                storyTitle:
+                  type: string
+                  maxLength: 64
+                  description: Story title, maximum 64 characters including spaces.
+
+                storyContent:
+                  type: string
+                  minLength: 10
+                  description: |
+                    Required for test and both.
+                    Must contain a single paragraph with a maximum of 120 words.
+
+                practiceContent:
+                  type: string
+                  format: binary
+                  description: |
+                    Required for practice and both.
+                    Upload a JSON file containing a non-empty screens array.
+                    Each screen must contain st, et, and a non-empty words array.
+                    Each word must contain w, st, and et.
+
+                audioFile:
+                  type: string
+                  format: binary
+                  description: |
+                    Required for practice and both.
+                    Upload an MP3 file with a maximum size of 2.5 MiB.
+
+                language:
+                  type: string
+                  enum:
+                    - EN
+                  description: Supported language code is EN.
+
+                uuid:
+                  type: string
+                  description: Client-generated UUID7, 36 characters including hyphens.
+
+                grade:
+                  type: integer
+                  minimum: 1
+                  maximum: 8
+                  description: Target grade for which the story is intended.
+
+                thumbnail:
+                  type: string
+                  format: binary
+                  description: |
+                    Optional JPG/JPEG image, exactly 630 x 360 pixels,
+                    maximum size 150 KiB (153,600 bytes).
+
             encoding:
               practiceContent:
                 contentType: application/json
@@ -63,28 +131,28 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StoryRes'
+                $ref: "#/components/schemas/StoryRes"
 
         "400":
           description: Validation failed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorRes'
+                $ref: "#/components/schemas/ErrorRes"
 
         "403":
           description: Invalid API key
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorRes'
+                $ref: "#/components/schemas/ErrorRes"
 
         "500":
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorRes'
+                $ref: "#/components/schemas/ErrorRes"
 
       security:
         - ApiKeyAuth: []
@@ -100,205 +168,6 @@ components:
       description: API key required to access the endpoint.
 
   schemas:
-    TestStoryReq:
-      type: object
-      required:
-        - contentType
-        - storyTitle
-        - storyContent
-        - language
-        - uuid
-        - grade
-
-      example:
-        contentType: test
-        storyTitle: The Brave Little Turtle
-        storyContent: A little turtle dreamed of reaching the hill beside the lake. Every day it walked a little farther, even when the journey felt difficult.
-        language: EN
-        uuid: 019823c6-9f79-73f3-a5d4-9e2b8c4f7a55
-        grade: 3
-
-      properties:
-        contentType:
-          type: string
-          enum:
-            - test
-          description: Set to test when creating a test story.
-
-        storyTitle:
-          type: string
-          maxLength: 64
-          description: Title of the story. Maximum 64 characters, including spaces.
-
-        storyContent:
-          type: string
-          minLength: 10
-          description: Story text containing exactly one paragraph, with a minimum of 10 characters and a maximum of 120 words.
-
-        language:
-          type: string
-          enum:
-            - EN
-          description: Supported language code is EN.
-
-        uuid:
-          type: string
-          description: Client-generated UUID7, 36 characters including hyphens.
-
-        grade:
-          type: integer
-          minimum: 1
-          maximum: 8
-          description: Target grade for which the story is intended.
-
-        thumbnail:
-          type: string
-          format: binary
-          description: Optional JPG/JPEG image, exactly 630 x 360 pixels, maximum size 150 KiB (153,600 bytes).
-
-    PracticeStoryReq:
-      type: object
-      required:
-        - contentType
-        - storyTitle
-        - practiceContent
-        - audioFile
-        - language
-        - uuid
-        - grade
-
-      example:
-        contentType: practice
-        storyTitle: The Brave Little Turtle
-        practiceContent: practice_content.json
-        audioFile: practice_audio.mp3
-        language: EN
-        uuid: 019823c6-9f79-73f3-a5d4-9e2b8c4f7a56
-        grade: 3
-        thumbnail: thumb.jpg
-
-      properties:
-        contentType:
-          type: string
-          enum:
-            - practice
-          description: Set to practice when creating a practice story.
-
-        storyTitle:
-          type: string
-          maxLength: 64
-          description: Title of the story. Maximum 64 characters, including spaces.
-
-        practiceContent:
-          type: string
-          format: binary
-          description: |
-            Practice content provided as a JSON file.
-            The JSON must contain a non-empty screens array.
-            Each screen must contain st, et, and a non-empty words array.
-            Each word must contain w, st, and et.
-          
-        audioFile:
-          type: string
-          format: binary
-          description: Practice audio file in MP3 format. Maximum file size is 2.5 MiB.
-
-        language:
-          type: string
-          enum:
-            - EN
-          description: Supported language code is EN.
-
-        uuid:
-          type: string
-          description: Client-generated UUID7, 36 characters including hyphens.
-
-        grade:
-          type: integer
-          minimum: 1
-          maximum: 8
-          description: Target grade for which the story is intended.
-
-        thumbnail:
-          type: string
-          format: binary
-          description: Optional JPG/JPEG image, exactly 630 x 360 pixels, maximum size 150 KiB (153,600 bytes).
-
-    BothStoryReq:
-      type: object
-      required:
-        - contentType
-        - storyTitle
-        - storyContent
-        - practiceContent
-        - audioFile
-        - language
-        - uuid
-        - grade
-
-      example:
-        contentType: both
-        storyTitle: The Brave Little Turtle
-        storyContent: A little turtle dreamed of reaching the hill beside the lake. Every day it walked a little farther, even when the journey felt difficult.
-        practiceContent: practice_content.json
-        audioFile: practice_audio.mp3
-        language: EN
-        uuid: 019823c6-9f79-73f3-a5d4-9e2b8c4f7a57
-        grade: 3
-        thumbnail: thumb.jpg
-
-      properties:
-        contentType:
-          type: string
-          enum:
-            - both
-          description: Set to both to create test and practice content for the same story.
-
-        storyTitle:
-          type: string
-          maxLength: 64
-          description: Title of the story. Maximum 64 characters, including spaces.
-
-        storyContent:
-          type: string
-          minLength: 10
-          description: Test story text containing exactly one paragraph, with a minimum of 10 characters and a maximum of 120 words.
-
-        practiceContent:
-          type: string
-          format: binary
-          description: |
-            Practice content provided as a JSON file.
-            The JSON must contain a non-empty screens array.
-            Each screen must contain st, et, and a non-empty words array.
-            Each word must contain w, st, and et.
-          
-        audioFile:
-          type: string
-          format: binary
-          description: Practice audio file in MP3 format. Maximum file size is 2.5 MiB.
-
-        language:
-          type: string
-          enum:
-            - EN
-          description: Supported language code is EN.
-
-        uuid:
-          type: string
-          description: Client-generated UUID7, 36 characters including hyphens.
-
-        grade:
-          type: integer
-          minimum: 1
-          maximum: 8
-          description: Target grade for which the story is intended.
-
-        thumbnail:
-          type: string
-          format: binary
-          description: Optional JPG/JPEG image, exactly 630 x 360 pixels, maximum size 150 KiB (153,600 bytes).
-
     StoryRes:
       type: object
       properties:
