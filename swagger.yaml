@@ -16,7 +16,8 @@ paths:
       summary: Submit a test or practice story for processing
       operationId: CreateStory
       description: |
-        Submit the request using multipart/form-data for both test and practice stories.
+        Submit the request using multipart/form-data. All validation is performed by the API,
+        and validation errors are returned in the ErrorRes format.
 
         For a test story:
         - Set contentType to test.
@@ -35,9 +36,9 @@ paths:
 
         The thumbnail field is optional for all request types.
 
-        For contentType both, test and practice processing are initiated separately,
-        one after the other, using the same storyId. The asynchronous responses
-        are received separately for test and practice.
+        For contentType both, one story (one storyId) is created. Test and practice processing
+        are initiated separately, test first and then practice. The asynchronous responses are
+        received separately for test and practice.
 
       requestBody:
         description: Story creation request using multipart/form-data.
@@ -61,20 +62,97 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StoryRes'
+              example:
+                status: success
+                uuid: 019823c6-9f79-73f3-a5d4-9e2b8c4f7a57
+                storyId: 019823c7-1a2b-7c3d-8e4f-5a6b7c8d9e0f
+                message: Story accepted successfully. Processing has been initiated.
 
         "400":
-          description: Validation failed
+          description: |
+            Validation failed. The error and message values are returned by the API.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorRes'
+              examples:
+                MissingFields:
+                  summary: Required field missing
+                  value:
+                    status: error
+                    error: MissingFields
+                    message: storyTitle is required
+                InvalidContentType:
+                  summary: contentType not recognised
+                  value:
+                    status: error
+                    error: InvalidContentType
+                    message: contentType must be one of ['both', 'practice', 'test']
+                InvalidLanguage:
+                  summary: Unsupported language
+                  value:
+                    status: error
+                    error: InvalidLanguage
+                    message: language must be one of ['EN']
+                InvalidUUID:
+                  summary: uuid is not a valid UUID7
+                  value:
+                    status: error
+                    error: InvalidUUID
+                    message: uuid must be a valid UUID7
+                InvalidGrade:
+                  summary: grade out of range
+                  value:
+                    status: error
+                    error: InvalidGrade
+                    message: grade must be between 1 and 8
+                InvalidTitle:
+                  summary: Title rule violated
+                  value:
+                    status: error
+                    error: InvalidTitle
+                    message: storyTitle must be less than 64 characters
+                InvalidContent:
+                  summary: Story text rule violated
+                  value:
+                    status: error
+                    error: InvalidContent
+                    message: Only a single paragraph is allowed.
+                WordLimitExceeded:
+                  summary: More than 120 words
+                  value:
+                    status: error
+                    error: WordLimitExceeded
+                    message: Paragraph 1 has 130 words (limit 120).
+                InvalidPracticeContent:
+                  summary: Practice JSON invalid
+                  value:
+                    status: error
+                    error: InvalidPracticeContent
+                    message: 'practiceContent must be in the format {"practice_content": {"screens": [...]}}'
+                InvalidRequest:
+                  summary: Audio or thumbnail file rejected
+                  value:
+                    status: error
+                    error: InvalidRequest
+                    message: Thumbnail dimensions must be exactly 630x360 pixels
+                InvalidJSON:
+                  summary: Body is not valid JSON (non-multipart request)
+                  value:
+                    status: error
+                    error: InvalidJSON
+                    message: Invalid JSON input
 
         "403":
-          description: Invalid API key
+          description: Invalid or missing API key
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorRes'
+              example:
+                status: error
+                error: InvalidAPIKey
+                message: Invalid API key
 
         "500":
           description: Internal server error
@@ -82,6 +160,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorRes'
+              examples:
+                StoryStorageFailed:
+                  value:
+                    status: error
+                    error: StoryStorageFailed
+                    message: Failed to store story
+                StorySaveFailed:
+                  value:
+                    status: error
+                    error: StorySaveFailed
+                    message: Failed to save story
+                StoryProcessingFailed:
+                  value:
+                    status: error
+                    error: StoryProcessingFailed
+                    message: Failed to initiate story processing
 
       security:
         - ApiKeyAuth: []
@@ -97,70 +191,59 @@ components:
       description: API key required to access the endpoint.
 
   schemas:
+    # Constraints (required, enum, min/max length, min/max value) are intentionally
+    # NOT declared here, so Swagger UI does not validate on the client side.
+    # The API validates every rule and returns its own error.
     StoryReq:
       type: object
-      required:
-        - contentType
-        - storyTitle
-        - language
-        - uuid
-        - grade
       properties:
         contentType:
           type: string
-          enum:
-            - test
-            - practice
-            - both
           description: |
+            Required. One of test, practice or both.
             test: requires storyContent.
             practice: requires practiceContent and audioFile.
             both: requires storyContent, practiceContent and audioFile.
 
         storyTitle:
           type: string
-          maxLength: 64
-          description: Title of the story. Maximum 64 characters, including spaces.
+          description: Required. Title of the story. Maximum 64 characters including spaces. Letters, spaces and basic punctuation only. The characters < and > are not allowed.
 
         storyContent:
           type: string
-          minLength: 10
-          description: Story text containing exactly one paragraph, with a minimum of 10 characters and a maximum of 120 words. Required for test and both.
+          description: Required for test and both. Exactly one paragraph, minimum 10 characters and maximum 120 words. Letters, spaces and basic punctuation only. The characters < and > are not allowed. Ignored for practice.
 
         practiceContent:
           type: string
           format: binary
           description: |
-            Practice content provided as a JSON file. Required for practice and both.
-            The JSON must contain a non-empty screens array.
-            Each screen must contain st, et, and a non-empty words array.
-            Each word must contain w, st, and et.
+            Required for practice and both. JSON file in this format:
+            {"practice_content": {"screens": [{"st": 0, "et": 2.5, "words": [{"w": "Hello", "st": 0, "et": 0.5}]}]}}
+            Each screen allows only st, et and a non-empty words array.
+            Each word allows only w, st and et.
+            Ignored for test.
 
         audioFile:
           type: string
           format: binary
-          description: Practice audio file in MP3 format. Maximum file size is 2.5 MiB. Required for practice and both.
+          description: Required for practice and both. Practice audio in MP3 format, maximum 2.5 MiB. Only one audio file is allowed.
 
         language:
           type: string
-          enum:
-            - EN
-          description: Supported language code is EN.
+          description: Required. Supported language code is EN.
 
         uuid:
           type: string
-          description: Client-generated UUID7, 36 characters including hyphens.
+          description: Required. Client-generated UUID7, 36 characters including hyphens.
 
         grade:
-          type: integer
-          minimum: 1
-          maximum: 8
-          description: Target grade for which the story is intended.
+          type: string
+          description: Required. Integer from 1 to 8.
 
         thumbnail:
           type: string
           format: binary
-          description: Optional JPG/JPEG image, exactly 630 x 360 pixels, maximum size 150 KiB (153,600 bytes).
+          description: Optional. JPG/JPEG image, exactly 630 x 360 pixels, maximum 150 KiB (153,600 bytes).
 
     StoryRes:
       type: object
@@ -192,7 +275,11 @@ components:
 
         error:
           type: string
-          description: Error code identifying the failure.
+          description: |
+            Error code. One of MissingFields, InvalidContentType, InvalidLanguage, InvalidUUID,
+            InvalidGrade, InvalidTitle, InvalidContent, WordLimitExceeded, InvalidPracticeContent,
+            InvalidRequest, InvalidJSON, InvalidAPIKey, StoryStorageFailed, StorySaveFailed,
+            StoryProcessingFailed.
           example: InvalidRequest
 
         message:
