@@ -196,6 +196,10 @@ components:
       properties:
         contentType:
           type: string
+          enum:
+            - test
+            - practice
+            - both
           description: |
             Required. One of test, practice or both.
             test: requires storyContent.
@@ -227,6 +231,8 @@ components:
 
         language:
           type: string
+          enum:
+            - EN
           description: Required. Supported language code is EN.
 
         uuid:
@@ -235,6 +241,15 @@ components:
 
         grade:
           type: integer
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+            - 5
+            - 6
+            - 7
+            - 8
           description: Required. Integer from 1 to 8.
 
         thumbnail:
