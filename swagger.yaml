@@ -110,6 +110,14 @@ components:
         - uuid
         - grade
 
+      example:
+        contentType: test
+        storyTitle: The Brave Little Turtle
+        storyContent: A little turtle dreamed of reaching the hill beside the lake. Every day it walked a little farther, even when the journey felt difficult.
+        language: EN
+        uuid: 019823c6-9f79-73f3-a5d4-9e2b8c4f7a55
+        grade: 3
+
       properties:
         contentType:
           type: string
@@ -158,6 +166,16 @@ components:
         - language
         - uuid
         - grade
+
+      example:
+        contentType: practice
+        storyTitle: The Brave Little Turtle
+        practiceContent: practice_content.json
+        audioFile: practice_audio.mp3
+        language: EN
+        uuid: 019823c6-9f79-73f3-a5d4-9e2b8c4f7a56
+        grade: 3
+        thumbnail: thumb.jpg
 
       properties:
         contentType:
@@ -217,6 +235,17 @@ components:
         - language
         - uuid
         - grade
+
+      example:
+        contentType: both
+        storyTitle: The Brave Little Turtle
+        storyContent: A little turtle dreamed of reaching the hill beside the lake. Every day it walked a little farther, even when the journey felt difficult.
+        practiceContent: practice_content.json
+        audioFile: practice_audio.mp3
+        language: EN
+        uuid: 019823c6-9f79-73f3-a5d4-9e2b8c4f7a57
+        grade: 3
+        thumbnail: thumb.jpg
 
       properties:
         contentType:
