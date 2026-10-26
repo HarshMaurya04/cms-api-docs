@@ -191,9 +191,6 @@ components:
       description: API key required to access the endpoint.
 
   schemas:
-    # Constraints (required, enum, min/max length, min/max value) are intentionally
-    # NOT declared here, so Swagger UI does not validate on the client side.
-    # The API validates every rule and returns its own error.
     StoryReq:
       type: object
       properties:
@@ -237,7 +234,7 @@ components:
           description: Required. Client-generated UUID7, 36 characters including hyphens.
 
         grade:
-          type: string
+          type: integer
           description: Required. Integer from 1 to 8.
 
         thumbnail:
